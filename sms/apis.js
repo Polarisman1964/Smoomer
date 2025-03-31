@@ -165,6 +165,41 @@ async function updateConsent(req, res) {
 // Function to save consent info to Supabase
 async function saveCustomerConsent(customerId, firstName, phoneNumber, optInStatus, ipAddress, city, country) {
   const timestamp = moment().tz("America/New_York").format(); // Generate timestamp in EST
+
+  // Check if the customer_id already exists
+  const { data: existingData, error: fetchError } = await supabase
+    .from('tcpa')
+    .select('opt_in_status')
+    .eq('customer_id', customerId)
+    .single();
+
+  if (fetchError) {
+    console.error('Error checking existing customer_id:', fetchError);
+    throw new Error('Failed to check existing customer_id');
+  }
+
+  if (existingData) {
+    // If opt_in_status is true but new opt_in_status is false, update it
+    if (existingData.opt_in_status === true && optInStatus === false) {
+      const { error: updateError } = await supabase
+        .from('tcpa')
+        .update({ opt_in_status: optInStatus, timestamp: timestamp }) // Update timestamp as well
+        .eq('customer_id', customerId);
+
+      if (updateError) {
+        console.error('Error updating opt_in_status:', updateError);
+        throw new Error('Failed to update opt_in_status');
+      }
+
+      console.log('Opt-in status updated to false for customer_id:', customerId);
+      return;
+    }
+
+    console.log('No update needed for customer_id:', customerId);
+    return;
+  }
+
+  // Insert new record if customer_id does not exist
   const { data, error } = await supabase
     .from('tcpa')
     .insert([
