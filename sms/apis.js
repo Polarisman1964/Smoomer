@@ -125,7 +125,9 @@ async function getConsent(req, res) {
 
 // API to update consent info in Supabase
 async function updateConsent(req, res) {
-  const { customer_id } = req.body;
+  const { customer_id, ip_address } = req.body;
+
+  const { city, country } = await captureCustomerLocation(ip_address); // Capture customer location using IP address
 
   try {
     // Retrieve current consent information
@@ -136,8 +138,17 @@ async function updateConsent(req, res) {
       .single();
 
     if (error) {
-      console.error('Error fetching data: ', error);
-      throw new Error('Failed to fetch consent');
+      if (error.code === 'PGRST116') { // No rows found
+        console.log('Customer ID not found, creating new record with opt_in_status set to false.');
+
+        // Save a new record with opt_in_status set to false
+        await saveCustomerConsent(customer_id, null, null, false, ip_address, city, country);
+
+        return res.status(200).send({ success: true, message: 'Customer not found. New record created with opt_in_status set to false.' });
+      }
+
+      // console.error('Error fetching data: ', error);
+      // throw new Error('Failed to fetch consent');
     }
 
     // Toggle the opt_in_status
