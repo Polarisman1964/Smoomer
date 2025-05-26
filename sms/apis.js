@@ -54,7 +54,7 @@ async function sendDiscount(req, res) {
 
 // API to handle consent info and save it to Supabase
 async function saveConsent(req, res) {
-  const { customer_id, first_name, phone_number, opt_in_status, ip_address } = req.body;
+  const { customer_id, first_name, phone_number, opt_in_status, ip_address, cart_token } = req.body;
 
   try {
     // Check if the phone number already exists in the database
@@ -88,7 +88,7 @@ async function saveConsent(req, res) {
     });
 
     // Save customer consent information in Supabase
-    await saveCustomerConsent(customer_id, first_name, phone_number, opt_in_status, ip_address, city, country);
+    await saveCustomerConsent(customer_id, first_name, phone_number, opt_in_status, ip_address, city, country, cart_token);
 
     // Respond to client with success message
     res.status(200).send({ success: true, message: 'Consent information saved successfully!' });
@@ -174,7 +174,7 @@ async function updateConsent(req, res) {
 }
 
 // Function to save consent info to Supabase
-async function saveCustomerConsent(customerId, firstName, phoneNumber, optInStatus, ipAddress, city, country) {
+async function saveCustomerConsent(customerId, firstName, phoneNumber, optInStatus, ipAddress, city, country, cartToken) {
   const timestamp = moment().tz("America/New_York").format(); // Generate timestamp in EST
   const { data, error } = await supabase
     .from('tcpa')
@@ -188,6 +188,7 @@ async function saveCustomerConsent(customerId, firstName, phoneNumber, optInStat
         ip_address: ipAddress,
         city: city,
         country: country,
+        cart_token: cartToken
       },
     ]);
 
